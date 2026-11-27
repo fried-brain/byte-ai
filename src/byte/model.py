@@ -206,7 +206,9 @@ class BYTEModel(nn.Module):
         elif attention_mask.dtype != torch.bool:
             raise TypeError("attention_mask must be a boolean tensor")
 
-        safe_ids = input_ids.masked_fill(~attention_mask, 0)
+        loss_attention_mask = attention_mask
+        target_ids = input_ids.masked_fill(~loss_attention_mask, 0)
+        safe_ids = target_ids
         block_size = self.config.block_size
         num_blocks = (sequence_length + block_size - 1) // block_size
         padded_length = num_blocks * block_size
@@ -286,10 +288,12 @@ class BYTEModel(nn.Module):
         valid_blocks = torch.cat(valid_blocks_by_block, dim=1)
 
         if sequence_length > 1:
-            prediction_mask = attention_mask[:, :-1] & attention_mask[:, 1:]
+            prediction_mask = (
+                loss_attention_mask[:, :-1] & loss_attention_mask[:, 1:]
+            )
             per_position_loss = F.cross_entropy(
                 logits[:, :-1, :].reshape(-1, self.config.vocab_size),
-                safe_ids[:, 1:].reshape(-1),
+                target_ids[:, 1:].reshape(-1),
                 reduction="none",
             ).reshape(batch_size, sequence_length - 1)
             masked_loss = per_position_loss * prediction_mask.to(
