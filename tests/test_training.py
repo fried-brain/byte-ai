@@ -102,3 +102,30 @@ def test_smoke_training_writes_checkpoint_and_metadata(tmp_path) -> None:
     assert result["training"]["steps"] == 1
     assert result["dataset"]["kind"] == "synthetic_smoke_test"
     assert math.isfinite(result["results"]["validation_bits_per_byte"])
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["standard_transformer", "byte_gru", "fixed_hierarchical"],
+)
+def test_training_pipeline_supports_each_baseline_variant(tmp_path, variant) -> None:
+    config = tiny_config()
+    config["model"]["variant"] = variant
+    corpus = "BYTE baseline comparison fixture. " * 100
+    metadata = {
+        "kind": "synthetic_smoke_test",
+        "source": "generated test fixture",
+        "license": "not a benchmark corpus",
+    }
+
+    result = run_training(
+        config,
+        corpus,
+        metadata,
+        output_dir=tmp_path / variant,
+        device="cpu",
+    )
+
+    assert result["model_variant"] == variant
+    assert result["parameter_count"] > 0
+    assert (tmp_path / variant / "checkpoint.pt").is_file()
