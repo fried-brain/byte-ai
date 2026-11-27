@@ -4,7 +4,7 @@
 
 The initial pilot corpus is a revision-pinned 50,000-story sample from the English TinyStories training split. TinyStories is synthetic short-story text generated with GPT-3.5/GPT-4. It is suitable for testing a tiny language-model pipeline, but results must not be generalized to natural web text or treated as a broad benchmark.
 
-The dataset repository identifies the license as CDLA-Sharing-1.0. Preserve attribution and license terms for any redistributed dataset subset. The raw subset is kept outside Git and its SHA-256 is recorded in the generated manifest and training metadata.
+The dataset repository identifies the license as CDLA-Sharing-1.0. If raw or modified data is published, the agreement requires publication under the same agreement and preservation of attribution. Section 3.5 imposes no obligations on qualifying Results, while the definition of Results excludes outputs containing more than a de minimis portion of the source data. Do not assume model weights qualify if they memorize substantial story text. The raw subset is kept outside Git and its SHA-256 is recorded in the generated manifest and training metadata.
 
 A smoke test checks that batching, optimization, checkpointing, and validation metrics execute. It does not measure language-model quality and must never be reported as a benchmark.
 
