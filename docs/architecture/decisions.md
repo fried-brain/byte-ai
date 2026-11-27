@@ -19,3 +19,27 @@ The hybrid model, compression module, data pipeline, trainer, checkpointing, and
 ## Design constraint
 
 Do not describe the planned architecture as novel until a literature comparison identifies a precise distinction and experiments support its value.
+
+
+## Implemented v0.2 neural foundation
+
+- Local byte positions use deterministic sinusoidal absolute-position encodings.
+- The global sequence contains each retained latent slot as an individual token, not one pooled token per block.
+- Global latent tokens receive a sinusoidal block-position encoding and a learned slot-position embedding.
+- A learned global query reads only latent slots from completed earlier blocks.
+- Training retains all candidate slots with differentiable gate scaling.
+- Evaluation/inference physically selects only slots whose gates meet the configured threshold.
+- The current block is compressed after its predictions are produced.
+- The first implementation recomputes global context per block and does not yet use a KV cache.
+
+
+## Experiment variants implemented
+
+The shared training/evaluation pipeline supports four model variants:
+
+- `byte`: adaptive hierarchical BYTE model.
+- `standard_transformer`: full-context causal byte Transformer.
+- `byte_gru`: non-hierarchical unidirectional byte GRU.
+- `fixed_hierarchical`: hierarchical BYTE ablation with exactly two learned latent slots per valid block and no adaptive gate network.
+
+The selected variant is stored in checkpoint metadata. These implementations enable controlled experiments, but no public-corpus comparison has yet been performed.

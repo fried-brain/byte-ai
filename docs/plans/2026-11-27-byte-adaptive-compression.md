@@ -1,6 +1,6 @@
 # BYTE v0.2.0 Adaptive Compression Implementation Plan
 
-> **For agentic workers:** Use the host's available task-by-task implementation workflow. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Use the host's available task-by-task implementation workflow. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement and validate BYTE's tiny causal raw-byte model with content-dependent latent gating and next-byte prediction.
 
@@ -43,7 +43,7 @@
 - `LocalCausalEncoder(d_model: int = 128, nhead: int = 4, num_layers: int = 2)`: accepts block tensors `[batch, blocks, block_size, d_model]` and a valid-byte mask; returns same-shaped causal contextual states.
 - Add a `train` optional dependency group containing a supported PyTorch version. Keep pytest in the `dev` group.
 
-- [ ] **Step 1: Add focused failing tests**
+- [x] **Step 1: Add focused failing tests**
 
 Test that:
 - The block mask for three blocks allows block 0 to see no prior block, block 1 to see block 0, and block 2 to see blocks 0 and 1.
@@ -52,29 +52,29 @@ Test that:
 - Changing a later byte in a block cannot change local encoder outputs at earlier positions.
 - Padded positions do not become valid attention keys.
 
-- [ ] **Step 2: Verify the relevant failure**
+- [x] **Step 2: Verify the relevant failure**
 
 Run: `pytest -q tests/test_masks.py tests/test_modeling.py`
 
 Expected: collection or assertion failures specifically because the new mask and model interfaces do not exist yet. Resolve import/setup errors rather than treating them as a valid red result.
 
-- [ ] **Step 3: Implement the minimum primitives**
+- [x] **Step 3: Implement the minimum primitives**
 
 Implement the boolean block visibility mask, embedding, and local causal Transformer. Use explicit key-padding masks. Document tensor dimensions in docstrings. Do not implement compression in this task.
 
-- [ ] **Step 4: Verify the focused pass**
+- [x] **Step 4: Verify the focused pass**
 
 Run: `pytest -q tests/test_masks.py tests/test_modeling.py`
 
 Expected: all focused mask and local-causality tests pass.
 
-- [ ] **Step 5: Run the existing integration suite**
+- [x] **Step 5: Run the existing integration suite**
 
 Run: `pytest -q`
 
 Expected: existing codec tests and new model primitive tests pass.
 
-- [ ] **Step 6: Commit the passing deliverable**
+- [x] **Step 6: Commit the passing deliverable**
 
 ```bash
 git add pyproject.toml src/byte/modeling.py src/byte/masks.py tests/test_masks.py tests/test_modeling.py
@@ -94,7 +94,7 @@ git commit -m "feat: add causal byte model primitives"
 - `compression_budget_loss(gates, valid_blocks, target_active_slots: float = 2.0) -> torch.Tensor`.
 - Inference output includes packed active latents and their block indices so global attention can skip inactive slots.
 
-- [ ] **Step 1: Add focused failing tests**
+- [x] **Step 1: Add focused failing tests**
 
 Test that:
 - Output latent and gate shapes match the interfaces.
@@ -105,29 +105,29 @@ Test that:
 - A configurable inference threshold returns only slots whose gates meet or exceed that threshold, preserving block indices and stable order.
 - An all-inactive batch produces a correctly shaped empty packed representation without NaNs.
 
-- [ ] **Step 2: Verify the relevant failure**
+- [x] **Step 2: Verify the relevant failure**
 
 Run: `pytest -q tests/test_compression.py`
 
 Expected: failures because the compressor and budget loss do not yet exist.
 
-- [ ] **Step 3: Implement the minimum compressor**
+- [x] **Step 3: Implement the minimum compressor**
 
 Use four learned latent queries attending over each completed block's local states. Produce a learned group summary and per-slot sigmoid gates. Apply gates to latent vectors. Compute the budget penalty from valid blocks only. Implement thresholded packing for inference; do not claim compute savings from dense zero-masked tensors.
 
-- [ ] **Step 4: Verify the focused pass**
+- [x] **Step 4: Verify the focused pass**
 
 Run: `pytest -q tests/test_compression.py`
 
 Expected: all shape, masking, threshold, budget, and gradient tests pass.
 
-- [ ] **Step 5: Run affected integration tests**
+- [x] **Step 5: Run affected integration tests**
 
 Run: `pytest -q tests/test_masks.py tests/test_modeling.py tests/test_compression.py`
 
 Expected: all primitive and compressor tests pass together.
 
-- [ ] **Step 6: Commit the passing deliverable**
+- [x] **Step 6: Commit the passing deliverable**
 
 ```bash
 git add src/byte/compression.py tests/test_compression.py
@@ -148,7 +148,7 @@ git commit -m "feat: add adaptive latent compression"
 - Training output: next-byte logits `[batch, sequence, 256]`, prediction loss, compression-budget loss, and gate statistics.
 - Inference method: incremental block processing that exposes only compressed representations of fully completed prior blocks.
 
-- [ ] **Step 1: Add focused failing tests**
+- [x] **Step 1: Add focused failing tests**
 
 Test that:
 - Input `[2, 32]` produces logits `[2, 32, 256]`.
@@ -160,29 +160,29 @@ Test that:
 - A short sequence and a non-multiple-of-16 sequence run without shape errors.
 - Total loss equals prediction loss plus configured weighted budget loss.
 
-- [ ] **Step 2: Verify the relevant failure**
+- [x] **Step 2: Verify the relevant failure**
 
 Run: `pytest -q tests/test_model.py`
 
 Expected: failures because the integrated BYTE model and forward contract do not yet exist.
 
-- [ ] **Step 3: Implement the minimum integrated model**
+- [x] **Step 3: Implement the minimum integrated model**
 
 Combine embedding, local causal encoder, completed-block compression, causal global context, and 256-class prediction head. For each block, use only prior completed-block summaries as global context. Keep same-block prediction on local causal states plus prior global context. Implement loss masking and explicit train/inference paths.
 
-- [ ] **Step 4: Verify the focused pass**
+- [x] **Step 4: Verify the focused pass**
 
 Run: `pytest -q tests/test_model.py`
 
 Expected: all shape, target alignment, padding, loss, and future-information isolation tests pass.
 
-- [ ] **Step 5: Run the full unit suite**
+- [x] **Step 5: Run the full unit suite**
 
 Run: `pytest -q`
 
 Expected: codec, mask, primitive, compressor, and integrated model tests all pass.
 
-- [ ] **Step 6: Commit the passing deliverable**
+- [x] **Step 6: Commit the passing deliverable**
 
 ```bash
 git add src/byte/model.py src/byte/__init__.py tests/test_model.py
@@ -208,7 +208,7 @@ git commit -m "feat: integrate BYTE next-byte model"
 - `evaluate_bits_per_byte(model, batches) -> float`: cross-entropy converted to bits per byte, excluding padding.
 - CLI entry points: `python -m byte.train --config configs/tiny.yaml` and `python -m byte.evaluate --config configs/tiny.yaml --checkpoint PATH`.
 
-- [ ] **Step 1: Add focused failing tests**
+- [x] **Step 1: Add focused failing tests**
 
 Test that:
 - A known UTF-8 string becomes exactly its raw byte sequence.
@@ -219,25 +219,25 @@ Test that:
 - One optimizer step changes at least one trainable parameter.
 - Bits-per-byte evaluation matches a hand-computed small example and excludes padding.
 
-- [ ] **Step 2: Verify the relevant failure**
+- [x] **Step 2: Verify the relevant failure**
 
 Run: `pytest -q tests/test_data.py tests/test_training.py`
 
 Expected: failures because the data, training, and evaluation interfaces do not yet exist.
 
-- [ ] **Step 3: Implement the minimum reproducible pipeline**
+- [x] **Step 3: Implement the minimum reproducible pipeline**
 
 Use a tiny in-memory corpus fixture for tests. Keep real dataset download separate from core model code. Record source, license, version, checksum, preprocessing, and split boundaries in the experiment protocol before selecting a public corpus. Seed Python and PyTorch. Save model configuration and checkpoint metadata. Implement bits-per-byte from summed negative log likelihood divided by the number of valid predicted bytes and by ln(2).
 
 Implement baseline variants behind a shared configuration/interface so the evaluation loop uses identical batches and splits. Include fixed-slot hierarchical compression as an ablation. Match parameter budgets as closely as practical and report parameter counts when exact matching is impossible.
 
-- [ ] **Step 4: Verify the focused pass**
+- [x] **Step 4: Verify the focused pass**
 
 Run: `pytest -q tests/test_data.py tests/test_training.py`
 
 Expected: deterministic batches, correct shifts, finite tiny training, parameter updates, and correct bits-per-byte calculation all pass.
 
-- [ ] **Step 5: Run the complete suite and smoke experiment**
+- [x] **Step 5: Run the complete suite and smoke experiment**
 
 Run: `pytest -q`
 
@@ -247,7 +247,7 @@ Run: `python -m byte.train --config configs/tiny.yaml --smoke-test`
 
 Expected: a short synthetic-corpus run completes, reports finite losses, and writes a checkpoint plus configuration metadata to the configured run directory.
 
-- [ ] **Step 6: Commit the passing deliverable**
+- [x] **Step 6: Commit the passing deliverable**
 
 ```bash
 git add src/byte/data.py src/byte/train.py src/byte/evaluate.py configs/tiny.yaml tests/test_data.py tests/test_training.py docs/experiments/protocol-v0.2.md README.md
