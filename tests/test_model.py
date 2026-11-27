@@ -176,3 +176,56 @@ def test_single_byte_input_has_zero_prediction_loss() -> None:
     output = model(torch.tensor([[65]]))
     assert output.logits.shape == (1, 1, 256)
     assert output.prediction_loss.item() == 0.0
+
+
+def test_eval_global_encoder_physically_skips_inactive_latent_slots(monkeypatch) -> None:
+    model = BYTEModel(tiny_config()).eval()
+    original_forward = model.compressor.forward
+    sequence_lengths = []
+
+    def controlled_gates(*args, **kwargs):
+        result = original_forward(*args, **kwargs)
+        result.gates = torch.tensor(
+            [[[0.9, 0.1, 0.8, 0.1]]],
+            device=result.gates.device,
+            dtype=result.gates.dtype,
+        )
+        return result
+
+    def record_sequence_length(module, args):
+        sequence_lengths.append(args[0].shape[1])
+
+    monkeypatch.setattr(model.compressor, "forward", controlled_gates)
+    hook = model.global_encoder.register_forward_pre_hook(record_sequence_length)
+    with torch.no_grad():
+        model(torch.randint(0, 256, (1, 8)))
+    hook.remove()
+
+    # Block 0 uses BOS + query; block 1 adds only the two active slots.
+    assert sequence_lengths == [2, 4]
+
+
+def test_training_global_encoder_keeps_all_differentiable_slots(monkeypatch) -> None:
+    model = BYTEModel(tiny_config()).train()
+    original_forward = model.compressor.forward
+    sequence_lengths = []
+
+    def controlled_gates(*args, **kwargs):
+        result = original_forward(*args, **kwargs)
+        result.gates = torch.tensor(
+            [[[0.9, 0.1, 0.8, 0.1]]],
+            device=result.gates.device,
+            dtype=result.gates.dtype,
+        )
+        return result
+
+    def record_sequence_length(module, args):
+        sequence_lengths.append(args[0].shape[1])
+
+    monkeypatch.setattr(model.compressor, "forward", controlled_gates)
+    hook = model.global_encoder.register_forward_pre_hook(record_sequence_length)
+    model(torch.randint(0, 256, (1, 8)))
+    hook.remove()
+
+    # Training keeps all four slots and lets the gate values learn by gradient.
+    assert sequence_lengths == [2, 6]
