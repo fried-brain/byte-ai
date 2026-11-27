@@ -95,10 +95,8 @@ def test_threshold_packing_preserves_batch_block_and_slot_order() -> None:
         latents, gates, valid_blocks, threshold=0.5
     )
 
-    assert packed.shape == (7, 3)
+    assert packed.shape == (6, 3)
     assert block_indices.tolist() == [
-        [0, 0], [0, 0], [0, 1], [0, 1], [1, 0], [1, 0]
-    ][:packed.shape[0]] if False else block_indices.tolist() == [
         [0, 0], [0, 0], [0, 1], [0, 1], [1, 0], [1, 0]
     ]
     assert slot_indices.tolist() == [0, 2, 1, 2, 0, 1]
