@@ -124,6 +124,21 @@ with 256 output classes.
 
 The model is trained using categorical cross-entropy. Padding positions are excluded from the loss.
 
+
+
+## 3.7 Global latent sequence and positional information
+
+Each retained latent slot is supplied to the global encoder as an individual sequence element; BYTE does not collapse all slots from a block into one fixed summary token.
+
+- During training, all candidate slots are present and each latent vector is scaled by its differentiable gate.
+- During evaluation/inference, slots below the configured gate threshold are physically omitted from the global encoder's input sequence.
+- Every latent receives a deterministic sinusoidal block-position encoding and a learned slot-position embedding.
+- A learned global query token is appended after the prior-block latent sequence. Its output is used as context for the current block.
+- The current block is compressed only after its own byte predictions have been produced.
+- The first implementation recomputes the global context from the prior latent sequence for each block; it does not yet implement a key/value cache.
+
+This design makes the variable number of active latent slots visible to the global model and allows inference-time sequence length to vary with learned gates.
+
 ## 4. Causal information-flow requirements
 
 For a byte position t, its prediction must not depend on bytes after t.
