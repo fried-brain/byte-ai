@@ -17,6 +17,7 @@ The repository currently includes:
 - Byte embeddings and a local causal Transformer.
 - Learned four-slot adaptive compression with sigmoid gates and a compression-budget loss.
 - A blockwise causal BYTE model with a global encoder over individual prior-block latent slots.
+- Three controlled baselines: a full-context byte Transformer, a non-hierarchical byte GRU, and fixed two-slot hierarchical compression.
 - Inference-time physical selection of active latent slots using a configurable threshold.
 - Deterministic corpus splitting and next-byte batch generation.
 - Tiny training and bits-per-byte evaluation utilities.
@@ -64,7 +65,7 @@ BYTE is intended to be compared against:
 3. Fixed-size hierarchical compression.
 4. BYTE adaptive compression.
 
-These comparative experiments are not yet complete.
+All four model variants share the same batch generator, contiguous data splits, training step, checkpoint format, and bits-per-byte evaluator. Benchmark comparisons have not yet been run.
 
 ## Evaluation
 
