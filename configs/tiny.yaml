@@ -1,0 +1,16 @@
+# Placeholder configuration for the first reproducible experiments.
+# No model training code is implemented yet.
+project:
+  name: BYTE
+  version: 0.1.0
+  seed: 42
+
+data:
+  input_unit: utf8_byte
+  vocabulary_size: 256
+  text_only: true
+
+training:
+  objective: next_byte_prediction
+  enabled: false
+  note: "Enable only after dataset and model baselines are specified."
