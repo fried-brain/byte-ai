@@ -133,6 +133,7 @@ class BYTEModel(nn.Module):
         )
         self.global_bos = nn.Parameter(torch.empty(1, 1, cfg.d_model))
         self.global_query = nn.Parameter(torch.empty(1, 1, cfg.d_model))
+        self.slot_position_embedding = nn.Embedding(cfg.num_slots, cfg.d_model)
         nn.init.normal_(self.global_bos, mean=0.0, std=cfg.d_model**-0.5)
         nn.init.normal_(self.global_query, mean=0.0, std=cfg.d_model**-0.5)
 
@@ -141,46 +142,76 @@ class BYTEModel(nn.Module):
 
     def _global_context(
         self,
-        prior_summaries: list[torch.Tensor],
+        prior_latents: list[torch.Tensor],
+        prior_gates: list[torch.Tensor],
         prior_valid: list[torch.Tensor],
         batch_size: int,
         device: torch.device,
         dtype: torch.dtype,
     ) -> torch.Tensor:
-        """Encode BOS, prior completed blocks, and a current-block query."""
-        tokens = [self.global_bos.expand(batch_size, -1, -1)]
-        tokens.extend(summary.unsqueeze(1) for summary in prior_summaries)
-        tokens.append(self.global_query.expand(batch_size, -1, -1))
-        sequence = torch.cat(tokens, dim=1)
+        """Encode only the latent slots belonging to completed prior blocks.
 
-        positions = sinusoidal_position_encoding(
-            sequence.shape[1],
-            self.config.d_model,
-            device=device,
-            dtype=dtype,
-        )
-        sequence = sequence + positions
+        Training keeps every slot with its differentiable gate applied.
+        Evaluation physically selects only slots at or above gate_threshold.
+        Each sample is encoded separately because adaptive slot counts vary.
+        """
+        contexts: list[torch.Tensor] = []
+        for sample_index in range(batch_size):
+            tokens = [self.global_bos[0, 0]]
+            for block_index, (latents, gates, valid) in enumerate(
+                zip(prior_latents, prior_gates, prior_valid)
+            ):
+                if not bool(valid[sample_index]):
+                    continue
 
-        bos_valid = torch.ones((batch_size, 1), dtype=torch.bool, device=device)
-        query_valid = torch.ones((batch_size, 1), dtype=torch.bool, device=device)
-        if prior_valid:
-            prior_mask = torch.stack(prior_valid, dim=1)
-            key_valid = torch.cat((bos_valid, prior_mask, query_valid), dim=1)
-        else:
-            key_valid = torch.cat((bos_valid, query_valid), dim=1)
+                if self.training:
+                    slot_indices = torch.arange(
+                        self.config.num_slots,
+                        device=device,
+                    )
+                else:
+                    slot_indices = torch.nonzero(
+                        gates[sample_index] >= self.config.gate_threshold,
+                        as_tuple=False,
+                    ).flatten()
 
-        # The strict block mask is converted to ordinary causal attention by
-        # allowing each sequence position to attend to itself. The final query
-        # token contains no current-block data, so its self-attention is safe.
-        causal_mask = build_block_causal_mask(sequence.shape[1], device=device)
-        causal_mask.fill_diagonal_(False)
+                if slot_indices.numel() == 0:
+                    continue
 
-        encoded = self.global_encoder(
-            sequence,
-            mask=causal_mask,
-            src_key_padding_mask=~key_valid,
-        )
-        return encoded[:, -1, :]
+                block_position = sinusoidal_position_encoding(
+                    block_index + 1,
+                    self.config.d_model,
+                    device=device,
+                    dtype=dtype,
+                )[0, block_index]
+                slot_positions = self.slot_position_embedding(slot_indices)
+                selected_latents = latents[sample_index, slot_indices]
+                selected_gates = gates[sample_index, slot_indices].unsqueeze(-1)
+                selected = (
+                    selected_latents * selected_gates
+                    + block_position.unsqueeze(0)
+                    + slot_positions
+                )
+                tokens.extend(selected.unbind(dim=0))
+
+            query_position = sinusoidal_position_encoding(
+                len(prior_latents) + 1,
+                self.config.d_model,
+                device=device,
+                dtype=dtype,
+            )[0, -1]
+            tokens.append(self.global_query[0, 0] + query_position)
+
+            sequence = torch.stack(tokens, dim=0).unsqueeze(0)
+            causal_mask = build_block_causal_mask(
+                sequence.shape[1],
+                device=device,
+            )
+            causal_mask.fill_diagonal_(False)
+            encoded = self.global_encoder(sequence, mask=causal_mask)
+            contexts.append(encoded[0, -1, :])
+
+        return torch.stack(contexts, dim=0)
 
     def forward(
         self,
@@ -239,7 +270,8 @@ class BYTEModel(nn.Module):
         )
         valid_bytes = attention_mask.reshape(batch_size, num_blocks, block_size)
 
-        prior_summaries: list[torch.Tensor] = []
+        prior_latents: list[torch.Tensor] = []
+        prior_gates: list[torch.Tensor] = []
         prior_valid: list[torch.Tensor] = []
         logits_by_block: list[torch.Tensor] = []
         gates_by_block: list[torch.Tensor] = []
@@ -254,7 +286,8 @@ class BYTEModel(nn.Module):
                 valid_mask=block_valid,
             )
             global_context = self._global_context(
-                prior_summaries,
+                prior_latents,
+                prior_gates,
                 prior_valid,
                 batch_size,
                 embedded.device,
@@ -274,12 +307,10 @@ class BYTEModel(nn.Module):
             )
             block_latents = compressed.latents[:, 0]
             block_gates = compressed.gates[:, 0]
-            gate_weights = block_gates.unsqueeze(-1)
-            summary = (block_latents * gate_weights).sum(dim=1)
-            summary = summary / gate_weights.sum(dim=1).clamp_min(1e-6)
 
             block_is_valid = block_valid[:, 0].any(dim=-1)
-            prior_summaries.append(summary)
+            prior_latents.append(block_latents)
+            prior_gates.append(block_gates)
             prior_valid.append(block_is_valid)
             gates_by_block.append(block_gates.unsqueeze(1))
             valid_blocks_by_block.append(block_is_valid.unsqueeze(1))
