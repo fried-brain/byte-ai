@@ -150,3 +150,29 @@ def test_model_backward_produces_finite_gradients() -> None:
     gradients = [parameter.grad for parameter in model.parameters() if parameter.requires_grad]
     assert gradients
     assert all(gradient is not None and torch.isfinite(gradient).all() for gradient in gradients)
+
+
+def test_predict_next_uses_each_samples_last_valid_position() -> None:
+    model = BYTEModel(tiny_config()).eval()
+    input_ids = torch.randint(0, 256, (2, 8))
+    attention_mask = torch.tensor(
+        [
+            [True, True, True, False, False, False, False, False],
+            [True, True, True, True, True, True, True, True],
+        ]
+    )
+
+    with torch.no_grad():
+        output = model(input_ids, attention_mask=attention_mask)
+        next_logits = model.predict_next(input_ids, attention_mask=attention_mask)
+
+    assert next_logits.shape == (2, 256)
+    torch.testing.assert_close(next_logits[0], output.logits[0, 2])
+    torch.testing.assert_close(next_logits[1], output.logits[1, 7])
+
+
+def test_single_byte_input_has_zero_prediction_loss() -> None:
+    model = BYTEModel(tiny_config())
+    output = model(torch.tensor([[65]]))
+    assert output.logits.shape == (1, 1, 256)
+    assert output.prediction_loss.item() == 0.0
