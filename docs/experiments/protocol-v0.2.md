@@ -56,7 +56,7 @@ When baseline implementations are ready, compare:
 1. Standard byte-level Transformer.
 2. Non-hierarchical byte model.
 3. Fixed-size hierarchical compression.
-4. BYTE adaptive compression.
+4. BYTE adaptive compression.\n\nSet `model.variant` to `standard_transformer`, `byte_gru`, `fixed_hierarchical`, or `byte` in the YAML configuration. The fixed hierarchical ablation uses exactly two learned slots per valid block and no adaptive gate network.
 
 Use identical corpus splits and comparable parameter budgets where practical. Report parameter counts and hardware if exact matching is not possible.
 
