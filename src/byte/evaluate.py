@@ -11,7 +11,8 @@ from pathlib import Path
 import torch
 
 from byte.data import encode_corpus, make_next_byte_batches, split_byte_ids
-from byte.model import BYTEConfig, BYTEModel
+from byte.model import BYTEConfig
+from byte.baselines import build_model
 from byte.train import evaluate_bits_per_byte, load_yaml_config
 
 
@@ -72,7 +73,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     model_config = BYTEConfig(**checkpoint["model_config"])
-    model = BYTEModel(model_config).to(device)
+    model = build_model(checkpoint.get("model_variant", "byte"), model_config).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     bits_per_byte = evaluate_bits_per_byte(model, batches)
 
