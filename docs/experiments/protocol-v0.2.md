@@ -2,11 +2,13 @@
 
 ## Status
 
-The initial training and evaluation pipeline supports synthetic smoke tests and user-supplied UTF-8 text files. No public benchmark corpus has yet been selected or approved for BYTE results.
+The initial pilot corpus is a revision-pinned 50,000-story sample from the English TinyStories training split. TinyStories is synthetic short-story text generated with GPT-3.5/GPT-4. It is suitable for testing a tiny language-model pipeline, but results must not be generalized to natural web text or treated as a broad benchmark.
+
+The dataset repository identifies the license as CDLA-Sharing-1.0. Preserve attribution and license terms for any redistributed dataset subset. The raw subset is kept outside Git and its SHA-256 is recorded in the generated manifest and training metadata.
 
 A smoke test checks that batching, optimization, checkpointing, and validation metrics execute. It does not measure language-model quality and must never be reported as a benchmark.
 
-## Dataset admission requirements
+## Selected pilot dataset\n\n- Dataset: [roneneldan/TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories)\n- Pinned revision: `f54c09fd23315a6f9c86f9dc80f725de7d8f9c64`\n- Split sampled: `train` only\n- License: CDLA-Sharing-1.0\n- Sample: 50,000 stories, streaming shuffle with seed 42 and buffer size 10,000\n- Paper: [TinyStories: How Small Can Language Models Be and Still Speak Coherent English?](https://arxiv.org/abs/2305.07759)\n\nThe preparation utility writes the exact text subset and a manifest with story count, byte count, revision, license, seed, and SHA-256. The training pipeline then creates a contiguous 90/5/5 split within this sampled training subset. These are BYTE pilot splits, not the official TinyStories validation/test splits.\n\n## Dataset admission requirements
 
 Before a corpus is used for research results, record and verify:
 
