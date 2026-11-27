@@ -29,7 +29,7 @@ The model has not yet been trained on a selected public benchmark corpus. The sy
 Install the training dependencies and development tools:
 
 ```bash
-pip install -e ".[dev,train]"
+pip install -e ".[dev,train,data]"
 ```
 
 Then run:
@@ -38,16 +38,29 @@ Then run:
 python -m byte.train --config configs/tiny.yaml --smoke-test
 ```
 
+The smoke test overrides the training budget to two steps and uses generated synthetic text. It does not download or use TinyStories.
+
 The smoke test writes a checkpoint and metadata under `runs/tiny/`. It uses generated synthetic text and must not be treated as benchmark evidence.
+
+## Prepare the first public pilot corpus
+
+BYTE uses a small, revision-pinned sample from the English TinyStories training split for its first real-data pilot. TinyStories is a synthetic short-story dataset generated with GPT-3.5/GPT-4; it is useful for a tiny-model pipeline but is not a broad natural-language benchmark.
+
+Prepare 50,000 shuffled training stories:
+
+```bash
+python -m byte.prepare_tinystories --output data/tinystories-pilot.txt --stories 50000 --seed 42
+```
+
+The preparation command streams the pinned dataset revision, writes the UTF-8 corpus and creates a manifest containing its revision, license, story count, byte count, and SHA-256 checksum. The `data/` directory is ignored by Git; do not commit the raw corpus.
+
+The dataset is distributed under CDLA-Sharing-1.0. Preserve its attribution and license terms if you redistribute a data subset. The dataset card identifies it as English text and links the TinyStories paper. See the [dataset card](https://huggingface.co/datasets/roneneldan/TinyStories) and [CDLA Sharing 1.0](https://cdla.dev/sharing-1-0/).
 
 ## Real corpus training
 
-Before real training, edit `configs/tiny.yaml` and supply:
-- `data.path`: path to a UTF-8 text corpus.
-- `data.source`: source URL or precise source description.
-- `data.license`: verified license.
+The default configuration points to the generated pilot corpus and runs 1,000 tiny training steps. Adjust the training budget only after the smoke test succeeds.
 
-The pipeline records the corpus SHA-256, byte count, split sizes, model configuration, seed, software/hardware details, and validation bits per byte.
+The pipeline records the corpus SHA-256, byte count, split sizes, model variant, parameter count, model configuration, seed, software/hardware details, and validation bits per byte. The initial pilot split is a deterministic contiguous 90/5/5 split of the sampled training stories; it is not the dataset’s official validation/test benchmark.
 
 After training, evaluate the held-out test split with:
 
