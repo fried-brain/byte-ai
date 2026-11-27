@@ -54,7 +54,7 @@ python -m byte.prepare_tinystories --output data/tinystories-pilot.txt --stories
 
 The preparation command streams the pinned dataset revision, writes the UTF-8 corpus and creates a manifest containing its revision, license, story count, byte count, and SHA-256 checksum. The `data/` directory is ignored by Git; do not commit the raw corpus.
 
-The dataset is distributed under CDLA-Sharing-1.0. Preserve its attribution and license terms if you redistribute a data subset. The dataset card identifies it as English text and links the TinyStories paper. See the [dataset card](https://huggingface.co/datasets/roneneldan/TinyStories) and [CDLA Sharing 1.0](https://cdla.dev/sharing-1-0/).
+The dataset card identifies English text and the CDLA-Sharing-1.0 agreement. If you redistribute the raw subset or modified data, preserve attribution and publish it under the agreement. The agreement treats computational outputs as “Results” only when they do not contain more than a de minimis portion of the source data; it places no obligations on qualifying Results. We therefore make no blanket legal claim about weights that might memorize substantial story text. See the [dataset card](https://huggingface.co/datasets/roneneldan/TinyStories), [TinyStories paper](https://arxiv.org/abs/2305.07759), and [CDLA Sharing 1.0](https://cdla.dev/sharing-1-0/).
 
 ## Real corpus training
 
