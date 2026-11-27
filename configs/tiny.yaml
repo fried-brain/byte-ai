@@ -21,18 +21,18 @@ model:
   dropout: 0.1
 
 training:
-  steps: 2
+  steps: 1000
   batch_size: 2
   sequence_length: 128
   learning_rate: 0.0003
-  validation_steps: 2
-  test_steps: 2
+  validation_steps: 20
+  test_steps: 20
   output_dir: runs/tiny
 
 data:
   # Supply a UTF-8 text file and its provenance before real training.
-  path: null
-  source: null
-  license: null
+  path: data/tinystories-pilot.txt
+  source: https://huggingface.co/datasets/roneneldan/TinyStories/tree/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64
+  license: CDLA-Sharing-1.0
   train_fraction: 0.90
   validation_fraction: 0.05
