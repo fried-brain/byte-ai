@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 import torch
 import torch.nn.functional as F
@@ -78,7 +79,7 @@ def sinusoidal_position_encoding(
 
     positions = torch.arange(length, device=device, dtype=torch.float32).unsqueeze(1)
     dimensions = torch.arange(0, d_model, 2, device=device, dtype=torch.float32)
-    frequencies = torch.exp(dimensions * (-torch.log(torch.tensor(10000.0)) / d_model))
+    frequencies = torch.exp(dimensions * (-math.log(10000.0) / d_model))
     angles = positions * frequencies.unsqueeze(0)
 
     encoding = torch.zeros((1, length, d_model), device=device, dtype=torch.float32)
