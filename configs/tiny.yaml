@@ -7,6 +7,7 @@ project:
   seed: 42
 
 model:
+  variant: byte  # byte | standard_transformer | byte_gru | fixed_hierarchical
   vocab_size: 256
   d_model: 128
   block_size: 16
