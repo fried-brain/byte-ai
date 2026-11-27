@@ -254,6 +254,7 @@ def main(argv: list[str] | None = None) -> None:
     config = load_yaml_config(args.config)
 
     if args.smoke_test:
+        config = {**config, "training": {**config["training"], "steps": 2, "validation_steps": 1}}
         corpus_text = (
             "BYTE predicts the next raw UTF-8 byte from preceding bytes. "
             "Adaptive compression is an experimental hypothesis. "
@@ -274,11 +275,18 @@ def main(argv: list[str] | None = None) -> None:
             )
         corpus_path = Path(path)
         corpus_text = corpus_path.read_text(encoding="utf-8")
+        manifest_path = corpus_path.with_suffix(corpus_path.suffix + ".manifest.json")
+        manifest = (
+            json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest_path.is_file()
+            else None
+        )
         dataset_metadata = {
             "kind": "user_provided_text_file",
             "source": source,
             "license": license_name,
             "path": str(corpus_path),
+            "manifest": manifest,
         }
 
     metadata = run_training(config, corpus_text, dataset_metadata)
