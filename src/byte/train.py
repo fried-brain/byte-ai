@@ -15,7 +15,8 @@ import torch
 import yaml
 
 from byte.data import encode_corpus, make_next_byte_batches, split_byte_ids
-from byte.model import BYTEConfig, BYTEModel
+from byte.model import BYTEConfig
+from byte.baselines import build_model
 
 
 def train_step(
@@ -139,11 +140,14 @@ def run_training(
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-    model_config = BYTEConfig(**config["model"])
+    model_values = dict(config["model"])
+    model_variant = str(model_values.pop("variant", "byte"))
+    model_config = BYTEConfig(**model_values)
     selected_device = torch.device(
         device or ("cuda" if torch.cuda.is_available() else "cpu")
     )
-    model = BYTEModel(model_config).to(selected_device)
+    model = build_model(model_variant, model_config).to(selected_device)
+    model_config = model.config
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(training_config["learning_rate"]),
@@ -204,6 +208,8 @@ def run_training(
         "project": project_config,
         "dataset": dataset_record,
         "model": asdict(model_config),
+        "model_variant": model_variant,
+        "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
         "training": {
             "steps": steps,
             "batch_size": batch_size,
@@ -226,6 +232,7 @@ def run_training(
     checkpoint = {
         "model_state_dict": model.state_dict(),
         "model_config": asdict(model_config),
+        "model_variant": model_variant,
         "metadata": metadata,
     }
     torch.save(checkpoint, run_directory / "checkpoint.pt")
